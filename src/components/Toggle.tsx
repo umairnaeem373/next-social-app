@@ -3,7 +3,6 @@
 import * as React from "react"
 import { MoonIcon, SunIcon } from "@radix-ui/react-icons"
 import { useTheme } from "next-themes"
-
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -11,6 +10,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { User } from "lucide-react"
+import Link from "next/link"
 
 export function ModeToggle() {
   const { setTheme } = useTheme()
@@ -38,3 +39,25 @@ export function ModeToggle() {
     </DropdownMenu>
   )
 }
+
+
+type Props = {}
+
+export const UserToggle = (props: Props) => {
+  return (
+  <DropdownMenu>
+  <DropdownMenuTrigger asChild>
+    <Button variant="outline" size="icon">
+      <User className="h-[1.2rem] w-[1.2rem]"/>
+    </Button>
+  </DropdownMenuTrigger>
+  <DropdownMenuContent align="end">
+    <DropdownMenuItem>
+      <Link href='/signup'>Sign Up</Link>
+    </DropdownMenuItem>
+  </DropdownMenuContent>
+  </DropdownMenu>
+  )
+}
+
+

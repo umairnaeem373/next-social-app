@@ -11,15 +11,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import Image from "next/image";
-import { ModeToggle } from "./Toggle";
+import { ModeToggle, UserToggle } from "./Toggle";
 
 const Navbar = () => {
 
   return (
     <div className="mx-auto max-w-[1200px]">
       <div className="flex items-center py-4 gap-10 justify-between">
-        <Image src="/next.svg" alt="logo" width={40} height={40} />
+        <Image priority src="/next.svg" alt="logo" className="h-auto" width={100} height={40} />
         <Input type="text" placeholder="Search" className="w-3/4" />
+        <UserToggle/>
         <ModeToggle/>
       </div>
     </div>
