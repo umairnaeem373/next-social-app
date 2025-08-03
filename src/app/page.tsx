@@ -12,7 +12,7 @@ export default function ChatApp() {
       text: "Hey! How's your day going?",
       sender: 'other',
       timestamp: '10:30 AM',
-      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=40&h=40&fit=crop&crop=face',
+      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612c989?w=40&h=40&fit=crop&crop=face',
       senderName: 'Sarah Wilson'
     },
     {
@@ -26,7 +26,7 @@ export default function ChatApp() {
       text: "Same here! I'm excited about the new design system we're implementing.",
       sender: 'other',
       timestamp: '10:35 AM',
-      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=40&h=40&fit=crop&crop=face',
+      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b787?w=40&h=40&fit=crop&crop=face',
       senderName: 'Sarah Wilson'
     },
     {
