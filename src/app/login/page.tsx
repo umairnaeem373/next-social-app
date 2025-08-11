@@ -33,6 +33,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import Link from "next/link";
+import { useRouter } from "next/router";
+import { redirect } from "next/navigation";
 
 // Define the validation schema for the form using Zod
 const formSchema = z.object({
@@ -45,7 +47,9 @@ const formSchema = z.object({
 // The main component for our login form
 export default function App() {
   const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [loginError, setLoginError] = useState<string>("");
 
+  // const router = useRouter()
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -55,10 +59,44 @@ export default function App() {
   });
 
   // This function is called when the form is submitted
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    // Here you would typically handle the login logic, e.g., send data to an API
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     console.log("Login data:", values);
+    const dataValues = {
+      data: {
+        attributes: {
+          email: "example@yopmail.com",
+          password: "StrongPass1234",
+        },
+      },
+    };
     // You can also add logic for a loading state or success/error messages
+    try {
+      setLoginError("");
+
+      const response = await fetch("http://localhost:8000/api/v1/auth/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(dataValues),
+      });
+
+      const data = await response.json();
+
+      console.log(data)
+
+      if (!response.ok) {
+        throw new Error(data.message || "Login failed");
+      }
+
+      // Store token and redirect
+      localStorage.setItem("accessToken", data.authToken);
+      redirect("/home");
+    } catch (error) {
+      error instanceof Error
+        ? setLoginError(error.message || "An error occurred during login")
+        : setLoginError("An error occurred during login");
+    }
   }
 
   return (
@@ -126,20 +164,21 @@ export default function App() {
               />
             </CardContent>
             <CardFooter>
-                         <CardFooter className="flex flex-col gap-4">
-              <Button
-                type="submit"
-                className="w-full rounded-md"
-                disabled={form.formState.isSubmitting}
-              >
-                {form.formState.isSubmitting
-                  ? "Signing In..."
-                  : "Sign In"}
-              </Button>
-              <p className="text-center text-sm text-gray-600 dark:text-gray-400 w-full">
-                Don't have an account? <Link className="text-primary" href="/signup">Sign Up</Link>
-              </p>
-            </CardFooter>
+              <CardFooter className="flex flex-col gap-4">
+                <Button
+                  type="submit"
+                  className="w-full rounded-md"
+                  disabled={form.formState.isSubmitting}
+                >
+                  {form.formState.isSubmitting ? "Signing In..." : "Sign In"}
+                </Button>
+                <p className="text-center text-sm text-gray-600 dark:text-gray-400 w-full">
+                  Don't have an account?{" "}
+                  <Link className="text-primary" href="/signup">
+                    Sign Up
+                  </Link>
+                </p>
+              </CardFooter>
             </CardFooter>
           </form>
         </Form>

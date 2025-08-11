@@ -1,4 +1,4 @@
-"use client";
+'use client'
 import React, { useState, useRef, useEffect } from "react";
 import { io } from "socket.io-client";
 import {
@@ -14,8 +14,14 @@ import {
   Sun,
   Moon,
 } from "lucide-react";
+import { redirect } from "next/navigation";
+import { useAuthRedirect } from "../../hooks/useAuthRedirect";
 
 export default function ChatApp() {
+
+  useAuthRedirect()
+  
+
   const [message, setMessage] = useState("");
   const [sender, setSender] = useState(false);
   const [contact, setContact] = useState({

@@ -55,6 +55,9 @@ export const UserToggle = (props: Props) => {
     <DropdownMenuItem>
       <Link href='/signup'>Sign Up</Link>
     </DropdownMenuItem>
+    <DropdownMenuItem>
+      <Link href='/login'>Login</Link>
+    </DropdownMenuItem>
   </DropdownMenuContent>
   </DropdownMenu>
   )
