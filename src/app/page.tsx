@@ -1,6 +1,8 @@
-'use client'
-import React, { useState, useRef, useEffect } from "react";
+"use client";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { io } from "socket.io-client";
+import axios from "axios";
+import { jwtDecode, JwtPayload } from "jwt-decode";
 import {
   Send,
   MoreVertical,
@@ -14,25 +16,59 @@ import {
   Sun,
   Moon,
 } from "lucide-react";
-import { redirect } from "next/navigation";
 import { useAuthRedirect } from "../../hooks/useAuthRedirect";
+import Messages from "./signup/components/Messages";
+import { getAvatarColor, getInitials } from "../../utils/helper";
 
 export default function ChatApp() {
+  useAuthRedirect();
 
-  useAuthRedirect()
-  
+  interface User {
+    children: string[]; // Array of child IDs
+    code: string;
+    codeCreatedAt: string; // ISO date string
+    createdAt: string; // ISO date string
+    email: string;
+    fullName: string;
+    gender: "male" | "female" | "other";
+    id: string;
+    isBlock: boolean;
+    isComplete: boolean;
+    isDeleted: boolean;
+    isVerified: boolean;
+    password: string; // Hashed password
+    passwordChangedRequest: boolean;
+    phoneNum: string;
+    role: "parent" | "child" | "admin";
+    updatedAt: string; // ISO date string
+    avatar?: string;
+    __v: number;
+    _id: string;
+  }
 
   const [message, setMessage] = useState("");
-  const [sender, setSender] = useState(false);
-  const [contact, setContact] = useState({
-    id: 1,
-    name: "Sarah Wilson",
-    avatar:
-      "",
-    lastMessage: "That sounds amazing! I'd love to...",
-    timestamp: "10:36 AM",
-    unread: 0,
-    active: true,
+  const [reciever, setReciever] = useState("");
+  const [userId, setUserId] = useState("");
+  const [contact, setContact] = useState<User>({
+    children: [],
+    code: "",
+    codeCreatedAt: "",
+    createdAt: "",
+    email: "",
+    fullName: "",
+    gender: "male",
+    id: "",
+    isBlock: false,
+    isComplete: false,
+    isDeleted: false,
+    isVerified: false,
+    password: "",
+    passwordChangedRequest: false,
+    phoneNum: "",
+    role: "parent",
+    updatedAt: "",
+    __v: 0,
+    _id: "",
   });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
@@ -69,27 +105,61 @@ export default function ChatApp() {
     },
   ]);
 
+  const [contacts, setContacts] = useState<User[]>([]);
+
   const socket = io("http://localhost:8000");
-  const userId = sender ? "umair" : "linda";
-  const otherUserId = sender ? "linda" : "umair";
+
+  console.log('user:',userId,'reciever',reciever,)
+
+  const getUsers = useCallback(async () => {
+    interface decodeType {
+      _id: string;
+    }
+
+    try {
+      const token = localStorage.getItem("accessToken");
+      let decode: decodeType | null = null;
+      if (token) {
+        decode = jwtDecode(token) as decodeType;
+        setUserId(decode._id);
+      }
+      const response = await axios.get("http://localhost:8000/api/v1/users/", {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      setContacts(response.data);
+
+      console.log(response.data.map((e: any) => e));
+      if (!response.data) {
+        throw new Error("Fetching failed");
+      }
+    } catch (error) {
+      error instanceof Error && console.log(error);
+    }
+  }, []);
 
   useEffect(() => {
-    // Fetch history
-    // axios.get(`/api/messages/${otherUserId}`).then(res => setMessages(res.data));
+    // Fetch Users
+    getUsers();
 
     // Join private room
-    socket.emit("joinRoom", { userId, otherUserId });
+    socket.emit("joinRoom", { userId, otherUserId: reciever });
 
     // Receive message
     socket.on("receiveMessage", (msg) => {
-      console.log(msg, "message...");
       setMessages((prev) => [
         ...prev,
         {
-          id: +Date.now(),
-          text: msg.message + msg.sender,
-          sender: sender ? 'other' : 'me',
-          timestamp: "10:38 AM",
+          id: messages.length + 3,
+          text: msg.message,
+          sender: msg.sender,
+          timestamp: new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
         },
       ]);
     });
@@ -97,12 +167,7 @@ export default function ChatApp() {
     return () => {
       socket.off("receiveMessage");
     };
-  }, [userId, otherUserId]);
-
-  useEffect(() => {
-    setSender(!sender);
-    console.log(messages)
-  }, [messages]);
+  }, [userId, reciever]);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -120,84 +185,20 @@ export default function ChatApp() {
       const newMessage = {
         id: messages.length + 1,
         text: message,
-        sender: "me",
+        sender: userId,
         timestamp: new Date().toLocaleTimeString([], {
           hour: "2-digit",
           minute: "2-digit",
         }),
       };
+
       socket.emit("sendMessage", {
-        sender: "umair",
-        receiver: "linda",
+        sender: userId,
+        reciever,
         message,
       });
       setMessage("");
     }
-  };
-
-  const contacts = [
-    {
-      id: 1,
-      name: "Sarah Wilson",
-      avatar: "",
-      lastMessage: "That sounds amazing! I'd love to...",
-      timestamp: "10:36 AM",
-      unread: 0,
-      active: true,
-    },
-    {
-      id: 2,
-      name: "Mike Johnson",
-      avatar: "", // No image available
-      lastMessage: "Let's catch up tomorrow",
-      timestamp: "9:15 AM",
-      unread: 2,
-      active: false,
-    },
-    {
-      id: 3,
-      name: "Team Design",
-      avatar:
-        "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=40&h=40&fit=crop&crop=face",
-      lastMessage: "New mockups are ready",
-      timestamp: "Yesterday",
-      unread: 5,
-      active: false,
-    },
-  ];
-
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((word) => word.charAt(0).toUpperCase())
-      .join("")
-      .slice(0, 2);
-  };
-
-  const getAvatarColor = (name: string) => {
-    const lightColors = [
-      "bg-blue-500",
-      "bg-green-500",
-      "bg-purple-500",
-      "bg-pink-500",
-      "bg-indigo-500",
-      "bg-yellow-500",
-      "bg-red-500",
-      "bg-gray-500",
-    ];
-    const darkColors = [
-      "bg-blue-600",
-      "bg-green-600",
-      "bg-purple-600",
-      "bg-pink-600",
-      "bg-indigo-600",
-      "bg-yellow-600",
-      "bg-red-600",
-      "bg-gray-600",
-    ];
-    const colors = darkMode ? darkColors : lightColors;
-    const index = name.length % colors.length;
-    return colors[index];
   };
 
   return (
@@ -286,86 +287,88 @@ export default function ChatApp() {
 
         {/* Contact List */}
         <div className="flex-1 overflow-y-auto">
-          {contacts.map((contact, i) => (
-            <div
-              key={contact.id}
-              className={`p-3 md:p-4 border-b cursor-pointer transition-colors ${
-                contact.active
-                  ? `border-l-4 border-l-blue-500 ${
-                      darkMode ? "bg-gray-700/50" : "bg-blue-50"
-                    }`
-                  : `${
-                      darkMode
-                        ? "border-gray-700 hover:bg-gray-700"
-                        : "border-gray-50 hover:bg-gray-50"
-                    }`
-              }`}
-              onClick={() => {
-                setSidebarOpen(false);
-                setContact(contact);
-              }}
-            >
-              <div className="flex items-center space-x-3">
-                <div className="relative">
-                  {contact.avatar ? (
-                    <img
-                      src={contact.avatar}
-                      alt={contact.name}
-                      className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div
-                      className={`w-10 h-10 md:w-12 md:h-12 rounded-full ${getAvatarColor(
-                        contact.name
-                      )} flex items-center justify-center text-white font-medium text-sm md:text-base`}
-                    >
-                      {getInitials(contact.name)}
-                    </div>
-                  )}
-                  {contact.active && (
-                    <div className="absolute bottom-0 right-0 w-2.5 h-2.5 md:w-3 md:h-3 bg-green-500 border-2 border-white rounded-full"></div>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <h3
-                      className={`font-medium truncate text-sm md:text-base ${
-                        darkMode ? "text-white" : "text-gray-900"
-                      }`}
-                    >
-                      {contact.name}
-                    </h3>
-                    <span
-                      className={`text-xs ${
-                        darkMode ? "text-gray-400" : "text-gray-500"
-                      }`}
-                    >
-                      {contact.timestamp}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between mt-1">
-                    <p
-                      className={`text-xs md:text-sm truncate ${
-                        darkMode ? "text-gray-300" : "text-gray-600"
-                      }`}
-                    >
-                      {contact.lastMessage}
-                    </p>
-                    {contact.unread > 0 && (
-                      <span className="bg-blue-500 text-white text-xs rounded-full px-2 py-0.5 md:py-1 min-w-[18px] md:min-w-[20px] text-center">
-                        {contact.unread}
-                      </span>
+          {contacts &&
+            contacts.map((c) => (
+              <div
+                key={c.id}
+                className={`p-3 md:p-4 border-b cursor-pointer transition-colors ${
+                  c.id === contact.id
+                    ? `border-l-4 border-l-blue-500 border-b-0 ${
+                        darkMode ? "bg-gray-700/50" : "bg-blue-50"
+                      }`
+                    : `${
+                        darkMode
+                          ? "border-gray-700 hover:bg-gray-700"
+                          : "border-gray-50 hover:bg-gray-50"
+                      }`
+                }`}
+                onClick={() => {
+                  setSidebarOpen(false);
+                  setContact(c);
+                  setReciever(c.id);
+                }}
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="relative">
+                    {c.avatar ? (
+                      <img
+                        src={c.avatar}
+                        alt={c.fullName}
+                        className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div
+                        className={`w-10 h-10 md:w-12 md:h-12 rounded-full ${getAvatarColor(
+                          c.fullName || "User"
+                        )} flex items-center justify-center text-white font-medium text-sm md:text-base`}
+                      >
+                        {getInitials(c.fullName || "User")}
+                      </div>
                     )}
+                    {c.isVerified && (
+                      <div className="absolute bottom-0 right-0 w-2.5 h-2.5 md:w-3 md:h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <h3
+                        className={`font-medium truncate text-sm md:text-base ${
+                          darkMode ? "text-white" : "text-gray-900"
+                        }`}
+                      >
+                        {c.fullName}
+                      </h3>
+                      <span
+                        className={`text-xs ${
+                          darkMode ? "text-gray-400" : "text-gray-500"
+                        }`}
+                      >
+                        {c.createdAt.split("T")[1].slice(0, 5)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between mt-1">
+                      <p
+                        className={`text-xs md:text-sm truncate ${
+                          darkMode ? "text-gray-300" : "text-gray-600"
+                        }`}
+                      >
+                        {c.id}
+                      </p>
+                      {c.children.length > 0 && (
+                        <span className="bg-blue-500 text-white text-xs rounded-full px-2 py-0.5 md:py-1 min-w-[18px] md:min-w-[20px] text-center">
+                          {c.children.length}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
         </div>
       </div>
 
       {/* Main Chat Area */}
-      {contact && (
+      {contact.id && (
         <div className="flex-1 flex flex-col md:ml-0">
           {/* Chat Header */}
           <div
@@ -390,16 +393,16 @@ export default function ChatApp() {
                 {contact.avatar ? (
                   <img
                     src={contact.avatar}
-                    alt={contact.name}
+                    alt={contact.fullName}
                     className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover"
                   />
                 ) : (
                   <div
                     className={`w-10 h-10 md:w-12 md:h-12 rounded-full ${getAvatarColor(
-                      contact.name
+                      contact.fullName
                     )} flex items-center justify-center text-white font-medium text-sm md:text-base`}
                   >
-                    {getInitials(contact.name)}
+                    {getInitials(contact.fullName)}
                   </div>
                 )}
                 <div>
@@ -408,14 +411,14 @@ export default function ChatApp() {
                       darkMode ? "text-white" : "text-gray-900"
                     }`}
                   >
-                    {contact.name}
+                    {contact.fullName}
                   </h2>
                   <p
                     className={`text-xs md:text-sm ${
-                      contact.active ? "text-green-500" : "text-gray-500"
+                      contact.isVerified ? "text-green-500" : "text-gray-500"
                     }`}
                   >
-                    {contact.active ? "Active now" : "Last Seen"}
+                    {contact.isVerified ? "Active now" : "Last Seen"}
                   </p>
                 </div>
               </div>
@@ -452,65 +455,7 @@ export default function ChatApp() {
           </div>
 
           {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-3 md:space-y-4">
-            {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`flex ${
-                  msg.sender === "me" ? "justify-end" : "justify-start"
-                }`}
-              >
-                <div
-                  className={`flex items-end space-x-2 max-w-[85%] sm:max-w-xs md:max-w-md ${
-                    msg.sender === "me"
-                      ? "flex-row-reverse space-x-reverse"
-                      : ""
-                  }`}
-                >
-                  {msg.sender === "other" && (
-                    <div className="flex-shrink-0">
-                      {msg.avatar ? (
-                        <img
-                          src={msg.avatar}
-                          alt="Avatar"
-                          className="w-6 h-6 md:w-8 md:h-8 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div
-                          className={`w-6 h-6 md:w-8 md:h-8 rounded-full ${getAvatarColor(
-                            msg.senderName || "User"
-                          )} flex items-center justify-center text-white font-medium text-xs md:text-sm`}
-                        >
-                          {getInitials(msg.senderName || "U")}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  <div>
-                    <div
-                      className={`px-3 md:px-4 py-2 rounded-2xl text-sm md:text-base ${
-                        msg.sender === "me"
-                          ? "bg-blue-500 text-white"
-                          : darkMode
-                          ? "bg-gray-700 text-white border border-gray-600"
-                          : "bg-white border border-gray-200 text-gray-900"
-                      }`}
-                    >
-                      <p className="break-words">{msg.text}</p>
-                    </div>
-                    <p
-                      className={`text-xs mt-1 ${
-                        msg.sender === "me" ? "text-right" : "text-left"
-                      } ${darkMode ? "text-gray-400" : "text-gray-500"}`}
-                    >
-                      {msg.timestamp}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
-            <div ref={messagesEndRef} />
-          </div>
+          <Messages userId={userId} messages={messages} darkMode={darkMode} />
 
           {/* Message Input */}
           <div

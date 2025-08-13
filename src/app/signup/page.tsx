@@ -194,7 +194,7 @@ export default function App(): JSX.Element {
                       <FormControl>
                         <Input
                           type={showPassword ? "text" : "password"}
-                          placeholder="••••••••"
+                          placeholder="Password"
                           className="pl-10 pr-10"
                           {...field}
                         />
@@ -227,7 +227,7 @@ export default function App(): JSX.Element {
                       <FormControl>
                         <Input
                           type={showConfirmPassword ? "text" : "password"}
-                          placeholder="••••••••"
+                          placeholder="Confirm Password"
                           className="pl-10 pr-10"
                           {...field}
                         />
