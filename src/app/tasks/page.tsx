@@ -1,8 +1,5 @@
 "use client";
-import React, { useState, useRef, useEffect, useCallback } from "react";
-import { io } from "socket.io-client";
-import axios from "axios";
-import { jwtDecode, JwtPayload } from "jwt-decode";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Send,
   MoreVertical,
@@ -16,40 +13,21 @@ import {
   Sun,
   Moon,
 } from "lucide-react";
-import { useAuthRedirect } from "../../hooks/useAuthRedirect";
-import Messages from "../components/Messages";
-import { getAvatarColor, getInitials } from "../../utils/helper";
-
- export interface User {
-    children: string[]; // Array of child IDs
-    code: string;
-    codeCreatedAt: string; // ISO date string
-    createdAt: string; // ISO date string
-    email: string;
-    fullName: string;
-    gender: "male" | "female" | "other";
-    id: string;
-    isBlock: boolean;
-    isComplete: boolean;
-    isDeleted: boolean;
-    isVerified: boolean;
-    password: string; // Hashed password
-    passwordChangedRequest: boolean;
-    phoneNum: string;
-    role: "parent" | "child" | "admin";
-    updatedAt: string; // ISO date string
-    avatar?: string;
-    __v: number;
-    _id: string;
-  }
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import Messages from "@/components/Messages";
+import { User } from "../page";
+import { getAvatarColor, getInitials } from "../../../utils/helper";
 
 export default function ChatApp() {
-  useAuthRedirect();
-
   const [message, setMessage] = useState("");
-  const [reciever, setReciever] = useState("");
-  const [userId, setUserId] = useState("");
-  const [contact, setContact] = useState<User>({
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
+  const [contact, setContact] = useState<User | any>({
     children: [],
     code: "",
     codeCreatedAt: "",
@@ -70,11 +48,12 @@ export default function ChatApp() {
     __v: 0,
     _id: "",
   });
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
-  const [messages, setMessages] = useState([
+  const [userId] = useState("user-123");
+  const [reciever, setReciever] = useState("1");
+
+  const [messages, setMessages] = useState<any>([
     {
-      id: 1,
+      id: "1",
       text: "Hey! How's your day going?",
       sender: "other",
       timestamp: "10:30 AM",
@@ -83,13 +62,13 @@ export default function ChatApp() {
       senderName: "Sarah Wilson",
     },
     {
-      id: 2,
+      id: "2",
       text: "Pretty good! Just working on some new projects. How about you?",
       sender: "me",
       timestamp: "10:32 AM",
     },
     {
-      id: 3,
+      id: "3",
       text: "Same here! I'm excited about the new design system we're implementing.",
       sender: "other",
       timestamp: "10:35 AM",
@@ -98,76 +77,12 @@ export default function ChatApp() {
       senderName: "Sarah Wilson",
     },
     {
-      id: 4,
+      id: "4",
       text: "That sounds amazing! I'd love to hear more about it sometime.",
       sender: "me",
       timestamp: "10:36 AM",
     },
   ]);
-
-  const [contacts, setContacts] = useState<User[]>([]);
-
-  const socket = io("http://localhost:8000");
-
-  console.log('user:',userId,'reciever',reciever,)
-
-  const getUsers = useCallback(async () => {
-    interface decodeType {
-      _id: string;
-    }
-
-    try {
-      const token = localStorage.getItem("accessToken");
-      let decode: decodeType | null = null;
-      if (token) {
-        decode = jwtDecode(token) as decodeType;
-        setUserId(decode._id);
-      }
-      const response = await axios.get("http://localhost:8000/api/v1/users/", {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      setContacts(response.data);
-
-      console.log(response.data.map((e: any) => e));
-      if (!response.data) {
-        throw new Error("Fetching failed");
-      }
-    } catch (error) {
-      error instanceof Error && console.log(error);
-    }
-  }, []);
-
-  useEffect(() => {
-    // Fetch Users
-    getUsers();
-
-    // Join private room
-    socket.emit("joinRoom", { userId, otherUserId: reciever });
-
-    // Receive message
-    socket.on("receiveMessage", (msg) => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: messages.length + 3,
-          text: msg.message,
-          sender: msg.sender,
-          timestamp: new Date().toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-        },
-      ]);
-    });
-
-    return () => {
-      socket.off("receiveMessage");
-    };
-  }, [userId, reciever]);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -185,20 +100,55 @@ export default function ChatApp() {
       const newMessage = {
         id: messages.length + 1,
         text: message,
-        sender: userId,
+        sender: "me",
         timestamp: new Date().toLocaleTimeString([], {
           hour: "2-digit",
           minute: "2-digit",
         }),
       };
-
-      socket.emit("sendMessage", {
-        sender: userId,
-        reciever,
-        message,
-      });
+      setMessages([...messages, newMessage]);
       setMessage("");
     }
+  };
+
+  const contacts = [
+    {
+      id: "1",
+      fullName: "Sarah Wilson",
+      avatar:
+        "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=40&h=40&fit=crop&crop=face",
+      lastMessage: "That sounds amazing! I'd love to...",
+      createdAt: "2024-01-15T10:36:00Z",
+      children: [],
+      isVerified: true,
+    },
+    {
+      id: "2",
+      fullName: "Mike Johnson",
+      avatar: null,
+      lastMessage: "Let's catch up tomorrow",
+      createdAt: "2024-01-15T09:15:00Z",
+      children: [{}, {}], // 2 unread messages
+      isVerified: false,
+    },
+    {
+      id: "3",
+      fullName: "Team Design",
+      avatar:
+        "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=40&h=40&fit=crop&crop=face",
+      lastMessage: "New mockups are ready",
+      createdAt: "2024-01-14T15:30:00Z",
+      children: [{}, {}, {}, {}, {}], // 5 unread messages
+      isVerified: true,
+    },
+  ];
+
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase())
+      .join("")
+      .slice(0, 2);
   };
 
   return (
@@ -216,9 +166,9 @@ export default function ChatApp() {
       )}
 
       {/* Sidebar */}
-      <div
+      <Card
         className={`
-        w-80 border-r flex flex-col
+        w-80 border-r flex flex-col rounded-none border-t-0 border-l-0 border-b-0
         fixed md:relative inset-y-0 left-0 z-30
         transform transition-transform duration-300 ease-in-out
         md:transform-none md:translate-x-0
@@ -241,30 +191,34 @@ export default function ChatApp() {
               Messages
             </h1>
             <div className="flex items-center space-x-2">
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => setDarkMode(!darkMode)}
-                className={`p-2 rounded-lg transition-colors ${
+                className={
                   darkMode
                     ? "text-gray-300 hover:text-white hover:bg-gray-700"
                     : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-                }`}
+                }
               >
                 {darkMode ? (
                   <Sun className="w-5 h-5" />
                 ) : (
                   <Moon className="w-5 h-5" />
                 )}
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => setSidebarOpen(false)}
-                className={`md:hidden p-2 rounded-lg transition-colors ${
+                className={`md:hidden ${
                   darkMode
                     ? "text-gray-300 hover:text-white hover:bg-gray-700"
                     : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
                 }`}
               >
                 <ArrowLeft className="w-5 h-5" />
-              </button>
+              </Button>
             </div>
           </div>
           <div className="relative">
@@ -273,10 +227,10 @@ export default function ChatApp() {
                 darkMode ? "text-gray-400" : "text-gray-400"
               }`}
             />
-            <input
+            <Input
               type="text"
               placeholder="Search conversations..."
-              className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${
+              className={`pl-10 ${
                 darkMode
                   ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
                   : "bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-500"
@@ -293,14 +247,8 @@ export default function ChatApp() {
                 key={c.id}
                 className={`p-3 md:p-4 border-b cursor-pointer transition-colors ${
                   c.id === contact.id
-                    ? `border-l-4 border-l-blue-500 border-b-0 ${
-                        darkMode ? "bg-gray-700/50" : "bg-blue-50"
-                      }`
-                    : `${
-                        darkMode
-                          ? "border-gray-700 hover:bg-gray-700"
-                          : "border-gray-50 hover:bg-gray-50"
-                      }`
+                    ? 'border-l-4 border-l-blue-500 border-b-0'
+                    : "border-gray-50 hover:bg-gray-50"
                 }`}
                 onClick={() => {
                   setSidebarOpen(false);
@@ -310,19 +258,17 @@ export default function ChatApp() {
               >
                 <div className="flex items-center space-x-3">
                   <div className="relative">
-                    {c.avatar ? (
-                      <img
-                        src={c.avatar}
-                        alt={c.fullName}
-                        className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div
-                        className={`w-10 h-10 md:w-12 md:h-12 rounded-full ${getAvatarColor(c.fullName , darkMode ) } flex items-center justify-center text-white font-medium text-sm md:text-base`}
+                    <Avatar className="w-10 h-10 md:w-12 md:h-12">
+                      <AvatarImage src={(c.avatar = "")} alt={c.fullName} />
+                      <AvatarFallback
+                        className={`${getAvatarColor(
+                          c.fullName,
+                          darkMode
+                        )} text-white text-sm md:text-base`}
                       >
                         {getInitials(c.fullName)}
-                      </div>
-                    )}
+                      </AvatarFallback>
+                    </Avatar>
                     {c.isVerified && (
                       <div className="absolute bottom-0 right-0 w-2.5 h-2.5 md:w-3 md:h-3 bg-green-500 border-2 border-white rounded-full"></div>
                     )}
@@ -353,9 +299,9 @@ export default function ChatApp() {
                         {c.id}
                       </p>
                       {c.children.length > 0 && (
-                        <span className="bg-blue-500 text-white text-xs rounded-full px-2 py-0.5 md:py-1 min-w-[18px] md:min-w-[20px] text-center">
+                        <Badge className="bg-blue-500 hover:bg-blue-600 text-white text-xs px-2 py-0.5 md:py-1 min-w-[18px] md:min-w-[20px]">
                           {c.children.length}
-                        </span>
+                        </Badge>
                       )}
                     </div>
                   </div>
@@ -363,46 +309,36 @@ export default function ChatApp() {
               </div>
             ))}
         </div>
-      </div>
+      </Card>
 
       {/* Main Chat Area */}
       {contact.id && (
         <div className="flex-1 flex flex-col md:ml-0">
           {/* Chat Header */}
-          <div
-            className={`border-b px-4 md:px-6 py-3 md:py-4 ${
-              darkMode
-                ? "bg-gray-800 border-gray-700"
-                : "bg-white border-gray-200"
-            }`}
+          <Card
+            className={'border-b rounded-none border-t-0 border-l-0 border-r-0 px-4 md:px-6 py-3 md:py-4'}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setSidebarOpen(true)}
-                  className={`md:hidden p-2 rounded-lg transition-colors -ml-2 ${
-                    darkMode
-                      ? "text-gray-300 hover:text-white hover:bg-gray-700"
-                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-                  }`}
+                  className={'md:hidden -ml-2'}
                 >
                   <Menu className="w-5 h-5" />
-                </button>
-                {contact.avatar ? (
-                  <img
-                    src={contact.avatar}
-                    alt={contact.fullName}
-                    className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover"
-                  />
-                ) : (
-                  <div
-                    className={`w-10 h-10 md:w-12 md:h-12 rounded-full ${getAvatarColor(
-                      contact.fullName , darkMode
-                    )} flex items-center justify-center text-white font-medium text-sm md:text-base`}
+                </Button>
+                <Avatar className="w-10 h-10 md:w-12 md:h-12">
+                  <AvatarImage src={contact.avatar} alt={contact.fullName} />
+                  <AvatarFallback
+                    className={`${getAvatarColor(
+                      contact.fullName,
+                      darkMode
+                    )} text-white text-sm md:text-base`}
                   >
                     {getInitials(contact.fullName)}
-                  </div>
-                )}
+                  </AvatarFallback>
+                </Avatar>
                 <div>
                   <h2
                     className={`font-medium text-sm md:text-base ${
@@ -421,92 +357,100 @@ export default function ChatApp() {
                 </div>
               </div>
               <div className="flex items-center space-x-1 md:space-x-2">
-                <button
-                  className={`p-1.5 md:p-2 rounded-lg transition-colors ${
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={
                     darkMode
                       ? "text-gray-300 hover:text-white hover:bg-gray-700"
                       : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-                  }`}
+                  }
                 >
                   <Phone className="w-4 h-4 md:w-5 md:h-5" />
-                </button>
-                <button
-                  className={`p-1.5 md:p-2 rounded-lg transition-colors ${
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={
                     darkMode
                       ? "text-gray-300 hover:text-white hover:bg-gray-700"
                       : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-                  }`}
+                  }
                 >
                   <Video className="w-4 h-4 md:w-5 md:h-5" />
-                </button>
-                <button
-                  className={`p-1.5 md:p-2 rounded-lg transition-colors ${
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={
                     darkMode
                       ? "text-gray-300 hover:text-white hover:bg-gray-700"
                       : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-                  }`}
+                  }
                 >
                   <MoreVertical className="w-4 h-4 md:w-5 md:h-5" />
-                </button>
+                </Button>
               </div>
             </div>
-          </div>
+          </Card>
 
           {/* Messages Area */}
           <Messages userId={userId} messages={messages} darkMode={darkMode} />
 
           {/* Message Input */}
-          <div
-            className={`border-t p-3 md:p-4 ${
+          <Card
+            className={`border-t rounded-none border-l-0 border-r-0 border-b-0 p-3 md:p-4 ${
               darkMode
                 ? "bg-gray-800 border-gray-700"
                 : "bg-white border-gray-200"
             }`}
           >
             <div className="flex items-center space-x-2 md:space-x-3">
-              <button
-                type="button"
-                className={`p-2 rounded-lg transition-colors flex-shrink-0 ${
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`flex-shrink-0 ${
                   darkMode
                     ? "text-gray-300 hover:text-white hover:bg-gray-700"
                     : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
                 }`}
               >
                 <Paperclip className="w-4 h-4 md:w-5 md:h-5" />
-              </button>
+              </Button>
               <div className="flex-1 relative">
-                <input
+                <Input
                   type="text"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   onKeyPress={(e) => e.key === "Enter" && handleSendMessage(e)}
                   placeholder="Type a message..."
-                  className={`w-full px-3 md:px-4 py-2 md:py-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10 md:pr-12 text-sm md:text-base ${
+                  className={`pr-10 md:pr-12 rounded-full ${
                     darkMode
                       ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
                       : "bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-500"
                   }`}
                 />
-                <button
-                  type="button"
-                  className={`absolute right-2 md:right-3 top-1/2 transform -translate-y-1/2 p-1 transition-colors ${
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`absolute right-2 md:right-3 top-1/2 transform -translate-y-1/2 p-1 ${
                     darkMode
                       ? "text-gray-400 hover:text-gray-200"
                       : "text-gray-500 hover:text-gray-700"
                   }`}
                 >
                   <Smile className="w-4 h-4 md:w-5 md:h-5" />
-                </button>
+                </Button>
               </div>
-              <button
+              <Button
                 onClick={handleSendMessage}
                 disabled={!message.trim()}
-                className="p-2 md:p-3 bg-blue-500 text-white rounded-full hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0"
+                className="p-2 md:p-3 bg-blue-500 hover:bg-blue-600 text-white rounded-full disabled:opacity-50 flex-shrink-0"
               >
                 <Send className="w-4 h-4 md:w-5 md:h-5" />
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
         </div>
       )}
     </div>
