@@ -1,33 +1,40 @@
-'use client'
+"use client";
 import React, { useEffect, useRef } from "react";
-import { getAvatarColor, getInitials } from "../../utils/helper";
+import { formatTime, getAvatarColor, getInitials } from "../../utils/helper";
 
-
-
-
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
-import { SendHorizonal } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+import { SendHorizonal } from "lucide-react";
+import { Badge } from "./ui/badge";
 
 type Props = {
-  messages: {
-    id: number;
-    text: string;
-    sender: string;
-    timestamp: string;
-    avatar?: string;
-    senderName?: string;
-  }[];
-  userId : string
-  darkMode: boolean;
+  messages:
+    | {
+        id: number;
+        text: string;
+        sender: string;
+        timestamp?: string | Date;
+        status?: string;
+        avatar?: string;
+        senderName?: string;
+      }[]
+    | any[];
+  userId: string;
 };
 
-const Messages = ({ messages, darkMode , userId }: Props) => {
-    console.log(userId , messages)
+const Messages = ({ messages, userId }: Props) => {
+  console.log(messages);
+
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const scrollToBottom = () => {
@@ -38,9 +45,10 @@ const Messages = ({ messages, darkMode , userId }: Props) => {
     scrollToBottom();
   }, [messages]);
 
+
   return (
     <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-3 md:space-y-4">
-      {messages.map((msg) => (
+      {/* {messages.map((msg) => (
         <div
           key={msg.id+Date.now()}
           className={`flex ${
@@ -52,7 +60,7 @@ const Messages = ({ messages, darkMode , userId }: Props) => {
               msg.sender === userId ? "flex-row-reverse space-x-reverse" : ""
             }`}
           >
-            {msg.sender === "other" && (
+            {msg.sender !== userId && (
               <div className="flex-shrink-0">
                 {msg.avatar ? (
                   <img
@@ -88,141 +96,90 @@ const Messages = ({ messages, darkMode , userId }: Props) => {
                   msg.sender === userId ? "text-right" : "text-left"
                 } ${darkMode ? "text-gray-400" : "text-gray-500"}`}
               >
-                {msg.timestamp}
-              </p>
+                {/* {formatTime(msg.timestamp)} */}
+      {/* </p>
             </div>
           </div>
         </div>
       ))}
-      <div ref={messagesEndRef} />
+      <div ref={messagesEndRef} /> */}
+
+      <ScrollArea className="flex-1 p-4">
+        <div className="space-y-4">
+          {messages &&
+            messages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex ${
+                  message.sender === userId || message.sender === "user" ? "justify-end" : "justify-start"
+                }`}
+              >
+                <div
+                  className={`flex items-end space-x-2 max-w-xs sm:max-w-md lg:max-w-lg xl:max-w-xl ${
+                    message.sender === userId || message.sender === "user"
+                      ? "flex-row-reverse space-x-reverse"
+                      : ""
+                  }`}
+                >
+                  {![ userId, "user" ].includes(message.sender) && (
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={message.avatar} />
+                      <AvatarFallback>
+                        {getInitials(message.senderName)}
+                      </AvatarFallback>
+                    </Avatar>
+                  )}
+                  <div
+                    className={`rounded-2xl px-4 py-2 ${
+                                          message.sender === userId || message.sender === "user"
+                        ? "bg-primary text-primary-foreground rounded-br-sm"
+                        : "bg-muted rounded-bl-sm"
+                    }`}
+                  >
+                    <p className="text-sm break-words">{message.text}</p>
+                    <div
+                      className={`flex items-center justify-between mt-1 ${
+                        message.sender === userId || message.sender === "user" ? "flex-row-reverse" : ""
+                      }`}
+                    >
+                      <span className="text-xs opacity-70">
+                        {formatTime(message.timestamp)}
+                      </span>
+                      {message.sender === userId || message.sender === "user" && (
+                        <Badge variant="secondary" className="text-xs ml-2 h-4">
+                          {message.status ? message.status : "don"}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+          {/* Typing Indicator */}
+          {/* {selectedContact.isTyping && (
+                <div className="flex justify-start">
+                  <div className="flex items-end space-x-2 max-w-xs lg:max-w-md xl:max-w-lg">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={selectedContact.avatar} />
+                      <AvatarFallback>{selectedContact.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <div className="bg-muted rounded-2xl rounded-bl-sm px-4 py-2">
+                      <div className="flex space-x-1">
+                        <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                        <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                        <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )} */}
+        </div>
+        <div ref={messagesEndRef} />
+      </ScrollArea>
     </div>
   );
 };
 
 export default Messages;
-
-// Define the shape of a message object for TypeScript
-interface Message {
-  sender: 'user' | 'ai';
-  text: string;
-}
-
-// Main App component
-// export default function App() {
-//   // State to hold the chat messages
-//   const [messages, setMessages] = useState<Message[]>([
-//     { sender: 'ai', text: 'Hello! How can I help you today?' },
-//     { sender: 'user', text: 'Tell me about the weather.' },
-//     { sender: 'ai', text: "I can't access real-time weather information, but I can tell you that the sun is shining somewhere!" },
-//     { sender: 'user', text: 'That\'s great to know!' },
-//   ]);
-
-//   // State to hold the current input text
-//   const [newMessage, setNewMessage] = useState('');
-
-//   // Ref for the scroll area to enable auto-scrolling
-//   const scrollAreaRef = useRef<HTMLDivElement>(null);
-
-//   // Function to handle sending a new message
-//   const handleSendMessage = () => {
-//     // Check if the input is not empty or just whitespace
-//     if (newMessage.trim() === '') {
-//       return;
-//     }
-    
-//     // Add the new message from the user to the messages array
-//     setMessages(prevMessages => [...prevMessages, { sender: 'user', text: newMessage }]);
-    
-//     // Simulate a response from the AI
-//     // In a real application, you would make an API call here.
-//     setTimeout(() => {
-//       setMessages(prevMessages => [...prevMessages, { sender: 'ai', text: 'Thanks for your message! I\'m currently set to be a friendly chat companion.' }]);
-//     }, 1000); // 1-second delay for a more realistic feel
-
-//     // Clear the input field after sending
-//     setNewMessage('');
-//   };
-
-//   // Effect to automatically scroll to the bottom of the chat when new messages are added
-//   useEffect(() => {
-//     if (scrollAreaRef.current) {
-//       scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
-//     }
-//   }, [messages]);
-
-//   return (
-//     <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4 sm:p-6">
-//       <Card className="w-full max-w-lg h-[90vh] flex flex-col rounded-xl shadow-lg dark:bg-gray-800">
-//         <CardHeader className="bg-gray-50 dark:bg-gray-700 rounded-t-xl px-6 py-4 border-b dark:border-gray-600">
-//           <CardTitle className="text-xl font-bold text-gray-800 dark:text-gray-200 text-center">AI Chat</CardTitle>
-//         </CardHeader>
-
-//         {/* The main chat messages area, with ScrollArea for overflow */}
-//         <CardContent className="flex-1 overflow-hidden p-0">
-//           <ScrollArea className="h-full w-full p-4" ref={scrollAreaRef}>
-//             <div className="flex flex-col gap-4">
-//               {messages.map((message, index) => (
-//                 <div
-//                   key={index}
-//                   className={`flex items-start gap-3 ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-//                 >
-//                   {/* AI Avatar */}
-//                   {message.sender === 'ai' && (
-//                     <Avatar>
-//                       <AvatarImage src="/placeholder-avatar.png" />
-//                       <AvatarFallback className="bg-blue-500 text-white rounded-full font-semibold">AI</AvatarFallback>
-//                     </Avatar>
-//                   )}
-                  
-//                   {/* Message bubble */}
-//                   <div
-//                     className={`rounded-3xl px-4 py-2 max-w-[80%] md:max-w-[70%] lg:max-w-[60%] shadow-sm ${
-//                       message.sender === 'user'
-//                         ? 'bg-blue-600 text-white self-end'
-//                         : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
-//                     }`}
-//                   >
-//                     {message.text}
-//                   </div>
-                  
-//                   {/* User Avatar */}
-//                   {message.sender === 'user' && (
-//                     <Avatar>
-//                       <AvatarImage src="/placeholder-avatar.png" />
-//                       <AvatarFallback className="bg-purple-500 text-white rounded-full font-semibold">U</AvatarFallback>
-//                     </Avatar>
-//                   )}
-//                 </div>
-//               ))}
-//             </div>
-//           </ScrollArea>
-//         </CardContent>
-
-//         <Separator className="dark:bg-gray-600" />
-
-//         {/* Input area */}
-//         <CardFooter className="flex items-center p-4 bg-gray-50 dark:bg-gray-700 rounded-b-xl">
-//           <Input
-//             className="flex-1 rounded-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-12"
-//             placeholder="Type your message..."
-//             value={newMessage}
-//             onChange={(e) => setNewMessage(e.target.value)}
-//             onKeyPress={(e) => {
-//               if (e.key === 'Enter') {
-//                 handleSendMessage();
-//               }
-//             }}
-//           />
-//           <Button
-//             className="ml-2 rounded-full h-10 w-10 flex-shrink-0"
-//             onClick={handleSendMessage}
-//             disabled={!newMessage.trim()}
-//           >
-//             <SendHorizonal className="h-5 w-5" />
-//           </Button>
-//         </CardFooter>
-//       </Card>
-//     </div>
-//   );
-// }
 
