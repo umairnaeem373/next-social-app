@@ -1,4 +1,4 @@
-export const getAvatarColor = (name: string = 'New User' , darkMode: boolean) : string  => {
+export const getAvatarColor = (name: string = 'New User' , darkMode: boolean = false) : string  => {
     const lightColors = [
       'bg-blue-500',
       'bg-green-500', 
@@ -21,7 +21,6 @@ export const getAvatarColor = (name: string = 'New User' , darkMode: boolean) : 
     ];
     const colors = darkMode ? darkColors : lightColors;
     const index = name.length % colors.length;
-    console.log(colors[index],'color')
     return colors[index];
   };
 
@@ -32,3 +31,14 @@ export const getAvatarColor = (name: string = 'New User' , darkMode: boolean) : 
       .join("")
       .slice(0, 2);
   };
+
+  export const formatTime = (date: Date) => {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  }
+
+export const safeLocalStorage = {
+  getItem: (key: string) => (typeof window !== "undefined" ? localStorage.getItem(key) : null),
+  setItem: (key: string, value: string) => {
+    if (typeof window !== "undefined") localStorage.setItem(key, value);
+  },
+};
